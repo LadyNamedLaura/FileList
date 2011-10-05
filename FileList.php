@@ -225,16 +225,7 @@ class FileList {
         $articleFiles = list_files_of_page($parser->mTitle);
 
         // Generate the media listing.
-        $output = $this->outputMedia($parser->mTitle, $articleFiles);
-
-        // Convert the listing wikitext into HTML and return it.
-        //$localParser = new Parser();
-        //$output = $localParser->parse($output, $parser->mTitle, $parser->mOptions);
-        //$output = $output->getText()
-        
-        // Add form
-        $output .= $this->outputForm($parser->mTitle);
-        return $output;
+        return $this->outputMedia($parser->mTitle, $articleFiles);
     } // end of hookML
 
     /**
@@ -253,10 +244,16 @@ class FileList {
         $prefix = htmlspecialchars(get_prefix_from_page_name($pageName));
         $extension_folder_url = htmlspecialchars(get_index_url()) . 'extensions/' . basename(dirname(__FILE__)) . '/';
         $icon_folder_url = $extension_folder_url . 'icons/';
+        $colls = 4;
+        
+        $prefix = htmlspecialchars(get_prefix_from_page_name($pageName));
+        $form_action = htmlspecialchars(page_link_by_title('Special:Upload'));
+        $upload_label = $wgFileListConfig['upload_anonymously'] ?
+            wfMsgForContent('fl_upload_file_anonymously') : wfMsgForContent('fl_upload_file');
         
         $output = '';
         // style
-        $output .= "<style>
+        $output .= '<style>
                         /***** table ******/
                         table.noborder, table.noborder td, table.noborder tr {
                             border-width: 0;
@@ -270,7 +267,7 @@ class FileList {
                         	text-indent: -5000px;
                         	background-repeat: no-repeat;
                         	height: 11px;
-                        	background-image: url($icon_folder_url/buttons_small_edit.gif);
+                        	background-image: url('.$icon_folder_url.'/buttons_small_edit.gif);
                         }
                         a.small_remove_button {
                         	width: 11px;
@@ -286,7 +283,22 @@ class FileList {
                         a.small_edit_button:hover {
                         	background-position: -21px -11px;
                         }
-                    </style>";
+                    </style>
+            <script>
+                function fileListSubmit(){
+                    form = document.filelistform;
+                    filename = form.wpUploadFile.value;
+                    if( filename == "" ) {
+                        fileListError("'.wfMsgForContent('fl_empty_file').'");
+                        return false;
+                    }
+                    form.wpDestFile.value = "'.$prefix.'" + filename;
+                    return true;
+                }
+                function fileListError(message){
+                    document.getElementById("filelist_error").innerHTML = message;
+                }
+            </script>';
                     
         // this is mandatory because parser interprets each whitespace at the start if a line
         $outputLines = explode("\n", $output);
@@ -301,25 +313,56 @@ class FileList {
             $descr = $article->getContent();
             if(trim($descr) != "") {
                 $descr_column = true;
+                $colls++;
                 break;
             }
         }
+        if(!$wgFileListConfig['upload_anonymously'])
+            $colls++;
         
         // table
-        $output .= '<table class="wikitable">';
-        $output .= '<tr>';
-        $output .= '<th style="text-align: left">' . wfMsgForContent('fl_heading_name') . '</th>';
-        $output .= '<th style="text-align: left">' . wfMsgForContent('fl_heading_datetime') . '</th>';
-        $output .= '<th style="text-align: left">' . wfMsgForContent('fl_heading_size') . '</th>';
+        $output .= '<table class="wikitable">
+                      <thead>
+                        <tr>
+                          <th style="text-align: left">' . wfMsgForContent('fl_heading_name') . '</th>
+                          <th style="text-align: left">' . wfMsgForContent('fl_heading_datetime') . '</th>
+                          <th style="text-align: left">' . wfMsgForContent('fl_heading_size') . '</th>';
         if($descr_column)
-            $output .= '<th style="text-align: left">' . wfMsgForContent('fl_heading_descr') . '</th>';
+            $output .= '  <th style="text-align: left">' . wfMsgForContent('fl_heading_descr') . '</th>';
         if(!$wgFileListConfig['upload_anonymously'])
-            $output .= '<th style="text-align: left">' . wfMsgForContent('fl_heading_user') . '</th>';
-        $output .= '<th></th>';
-        $output .= '</tr>';
-
+            $output .= '  <th style="text-align: left">' . wfMsgForContent('fl_heading_user') . '</th>';
+        $output .= '      <th></th>
+                        </tr>
+                      </thead>';
+        
+        if(UploadBase::isAllowed( $wgUser )===true) {
+            $output .= '<tfoot>
+                          <tr>
+                            <th colspan="'.$colls.'" style="cursor:pointer;" id="fl_add" onClick="this.style.display=\'none\';document.getElementById(\'fl_input\').style.display=\'\'">
+                              Add new
+                            </th>
+                          </tr>
+                          <tr>
+                            <th colspan="'.$colls.'" style="display:none;text-align:left" id="fl_input">
+                              <div style="color: red;" id="filelist_error"></div>
+                              <form action="'.$form_action.'" method="post" name="filelistform" class="visualClear" enctype="multipart/form-data" id="mw-upload-form" onsubmit="return fileListSubmit()">
+                                <input name="wpUploadFile" type="file" />
+                                <input name="wpDestFile" type="hidden" value="" />
+                                <input name="wpWatchthis" type="hidden"/>
+                                <input name="wpIgnoreWarning" type="hidden" value="1" />
+                                <input type="hidden" value="Special:Upload" name="title" />
+                                <input type="hidden" name="wpDestFileWarningAck" />
+                                <input type="submit" value="'.$upload_label.'" name="wpUpload" title="Upload [s]" accesskey="s"
+                                    class="mw-htmlform-submit" />
+                              </form>
+                            </th>
+                          </tr>
+                        </tfoot>';
+        }
+        
+        $output .= '  <tbody>';
         foreach ($filelist as $dataobject) {
-                $output .= "<tr>";
+                $output .= '<tr>';
                 /** ICON PROCESSING **/
                 $ext = file_get_extension($dataobject->img_name);
                 if(isset($fileListCorrespondingImages[$ext]))
@@ -342,11 +385,11 @@ class FileList {
                 /** TIME PROCESSING**/
                 // converts (database-dependent) timestamp to unix format, which can be used in date()
                 $timestamp = wfTimestamp(TS_UNIX, $dataobject->img_timestamp);
-                $output .= '<td>' . time_to_string($timestamp) . "</td>";
+                $output .= '<td>' . time_to_string($timestamp) . '</td>';
                 
                 /** SIZE PROCESSING **/
                 $size = human_readable_filesize($dataobject->img_size);
-                $output .= "<td>$size</td>";
+                $output .= '<td>'.$size.'</td>';
                 
                 /** DESCRIPTION **/
                 if($descr_column) {
@@ -382,65 +425,16 @@ class FileList {
                                        wfMsgForContent('fl_delete'));
                 $output .= '</tr></table></td>';
                 
-                $output .= "</tr>";
+                $output .= '</tr>';
         }
-        $output .= '</table>';
-        
-        return $output;
-    } // end of outputMedia
-
-    /**
-     * Generate output for the form.
-     * 
-     * @param string $pagename
-     * @param array $filelist
-     * @return string
-     */
-    function outputForm($pageName) {
-        global $wgFileListConfig;
-        
-        $pageName = htmlentities($pageName);
-        $prefix = htmlspecialchars(get_prefix_from_page_name($pageName));
-        $form_action = htmlspecialchars(page_link_by_title('Special:Upload'));
-        $upload_label = $wgFileListConfig['upload_anonymously'] ?
-            wfMsgForContent('fl_upload_file_anonymously') : wfMsgForContent('fl_upload_file');
-        
-        $output = '
-            <script>
-                function fileListSubmit(){
-                    form = document.filelistform;
-                    filename = form.wpUploadFile.value;
-                    if( filename == "" ) {
-                        fileListError("'.wfMsgForContent('fl_empty_file').'");
-                        return false;
-                    }
-                    form.wpDestFile.value = "'.$prefix.'" + filename;
-                    return true;
-                }
-                function fileListError(message){
-                    document.getElementById("filelist_error").innerHTML = message;
-                }
-            </script>
-            <table class="wikitable" style="padding: 0; margin:0;"><tr><th>
-                <div style="color: red;" id="filelist_error"></div>
-                <form action="'.$form_action.'" method="post" name="filelistform" class="visualClear" enctype="multipart/form-data" id="mw-upload-form">
-                <input name="wpUploadFile" type="file" />
-                <input name="wpDestFile" type="hidden" value="" />
-                <input name="wpWatchthis" type="hidden"/>
-                <input name="wpIgnoreWarning" type="hidden" value="1" />
-                <input type="hidden" value="Special:Upload" name="title" />
-                <input type="hidden" name="wpDestFileWarningAck" />
-                <input type="submit" value="'.$upload_label.'" name="wpUpload" title="Upload [s]" accesskey="s"
-                    class="mw-htmlform-submit" onclick="return fileListSubmit()" />
-            </form></th></tr></table><br />';
-        
-        // this is mandatory because parser interprets each whitespace at the start if a line
+        $output .= '</tbody></table>';
         $outputLines = explode("\n", $output);
         foreach($outputLines as &$line)
             $line = trim($line);
         $output = implode('', $outputLines);
+        
         return $output;
-    } // end of outputForm
+    } // end of outputMedia
 } // end of class FileList
 
 
