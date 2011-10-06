@@ -300,11 +300,6 @@ class FileList {
                 }
             </script>';
                     
-        // this is mandatory because parser interprets each whitespace at the start if a line
-        $outputLines = explode("\n", $output);
-        foreach($outputLines as &$line)
-            $line = trim($line);
-        $output = implode('', $outputLines);
         
         // check if exists
         $descr_column = false;
@@ -337,14 +332,14 @@ class FileList {
         
         if(UploadBase::isAllowed( $wgUser )===true) {
             $output .= '<tfoot>
-                          <tr>
-                            <th colspan="'.$colls.'" style="cursor:pointer;" id="fl_add" onClick="this.style.display=\'none\';document.getElementById(\'fl_input\').style.display=\'\'">
-                              Add new
+                          <tr id="fl_add">
+                            <th colspan="'.$colls.'" style="cursor:pointer;" onClick="document.getElementById(\'fl_add\').style.display=\'none\';document.getElementById(\'fl_input\').style.display=\'\'">
+                              '.wfMsgForContent('fl_add').'
                             </th>
                           </tr>
-                          <tr>
-                            <th colspan="'.$colls.'" style="display:none;text-align:left" id="fl_input">
-                              <div style="color: red;" id="filelist_error"></div>
+                          <tr id="fl_input" style="display:none;text-align:left">
+                            <th colspan="'.($colls-1).'">
+                              <div style="color: red;text-align:center" id="filelist_error"></div>
                               <form action="'.$form_action.'" method="post" name="filelistform" class="visualClear" enctype="multipart/form-data" id="mw-upload-form" onsubmit="return fileListSubmit()">
                                 <input name="wpUploadFile" type="file" />
                                 <input name="wpDestFile" type="hidden" value="" />
@@ -355,6 +350,15 @@ class FileList {
                                 <input type="submit" value="'.$upload_label.'" name="wpUpload" title="Upload [s]" accesskey="s"
                                     class="mw-htmlform-submit" />
                               </form>
+                            </th>
+                            <th>
+                              <table class="noborder" cellspacing="2"><tr><td>
+                                <acronym title="'.wfMsgForContent('fl_cancel').'">
+                                  <a href="javascript:return true" class="small_remove_button" onclick="document.getElementById(\'fl_input\').style.display=\'none\';document.getElementById(\'fl_add\').style.display=\'\';document.getElementById(\'mw-upload-form\').reset()">
+                                    '.wfMsgForContent('fl_cancel').'
+                                  </a>
+                                </acronym>
+                              </td></tr></table>
                             </th>
                           </tr>
                         </tfoot>';
