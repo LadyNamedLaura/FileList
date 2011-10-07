@@ -16,9 +16,6 @@
 if (!defined('MEDIAWIKI')) die("Mediawiki not set");
 
 /****************** CHANGING GLOBAL SETTINGS ******************/
-/** Allow client-side caching of pages */
-$wgCachePages       = false;
-$wgCacheEpoch = 'date +%Y%m%d%H%M%S';
 
 /** Set allowed extensions **/
 $wgFileExtensions = array(
@@ -76,6 +73,8 @@ $wgHooks['SpecialUploadComplete'][] = 'fileListUploadComplete';
 $wgHooks['UnknownAction'][] = 'actionDeleteFile';
 // move page hook
 $wgHooks['SpecialMovepageAfterMove'][] = 'fileListMovePage';
+//
+$wgHooks['ParserAfterTidy'][] = 'FileListParserAfterTidy';
 // credits
 $wgExtensionCredits['parserhook'][] = array(
     'name'           => 'FileList',
@@ -85,7 +84,8 @@ $wgExtensionCredits['parserhook'][] = array(
 );
 
 // internationalization file
-require_once( dirname(__FILE__) . '/FileList.i18n.php' );
+$wgExtensionMessagesFiles['myextension'] = dirname( __FILE__ ) . '/FileList.i18n.php';
+//require_once( dirname(__FILE__) . '/FileList.i18n.php' );
 
 // functions
 require_once( dirname(__FILE__) . '/library.php' );
@@ -95,14 +95,27 @@ require_once( dirname(__FILE__) . '/library.php' );
  * Sets a parser hook for <filelist/>.
  */
 function wfFileList() {
-    // Add messages
-    global $wgMessageCache, $FileListMessages;
-    foreach( $FileListMessages as $key => $value ) {
-        $wgMessageCache->addMessages($FileListMessages[$key], $key);
-    }
-
+    
     new FileList();
 }
+
+
+function FileListParserAfterTidy($parser, &$text) {
+    // find markers in $text
+    // replace markers with actual output
+    global $markerList;
+    
+    $parser->disableCache();
+    
+    $keys = array();
+    $marker_count = count($markerList);
+    for ($i = 0; $i < $marker_count; $i++) {
+            $keys[] = 'xx-marker' . $i . '-xx';
+    }
+    $text = str_replace($keys, $markerList, $text);
+    return true;
+}
+
 
 /**
  * Redirect to originating page after upload
@@ -124,7 +137,6 @@ function fileListUploadComplete($form){
     if(! $title->exists())
         return true;
     $nextpage = $title->getFullURL();
-    global $wgOut;
     header( 'location: ' . $nextpage );
     exit;
 }
@@ -221,13 +233,18 @@ class FileList {
      * @param Parser $parser
      */
     public function hookML($headline, $argv, $parser) {
+        global $markerList;
+        $parser->disableCache();
         // Get all files for this article
         $articleFiles = list_files_of_page($parser->mTitle);
-
+        
         // Generate the media listing.
-        return $this->outputMedia($parser->mTitle, $articleFiles);
+        $markercount = count($markerList);
+        $marker = "xx-marker".$markercount."-xx";
+        $markerList[$markercount] = $this->outputMedia($parser->mTitle, $articleFiles);;
+        return $marker;
     } // end of hookML
-
+    
     /**
      * Generate output for the list.
      * 
@@ -238,8 +255,6 @@ class FileList {
     function outputMedia($pageName, $filelist) {
         global $wgUser, $fileListCorrespondingImages, $wgFileListConfig;
         
-        if( sizeof($filelist)  == 0 )
-            return wfMsgForContent('fl_empty_list');
         
         $prefix = htmlspecialchars(get_prefix_from_page_name($pageName));
         $extension_folder_url = htmlspecialchars(get_index_url()) . 'extensions/' . basename(dirname(__FILE__)) . '/';
@@ -249,7 +264,7 @@ class FileList {
         $prefix = htmlspecialchars(get_prefix_from_page_name($pageName));
         $form_action = htmlspecialchars(page_link_by_title('Special:Upload'));
         $upload_label = $wgFileListConfig['upload_anonymously'] ?
-            wfMsgForContent('fl_upload_file_anonymously') : wfMsgForContent('fl_upload_file');
+            wfMsgForContent('fl_upload_file_anonymously') : wfMsgForContent('upload');
         
         $output = '';
         // style
@@ -319,13 +334,13 @@ class FileList {
         $output .= '<table class="wikitable">
                       <thead>
                         <tr>
-                          <th style="text-align: left">' . wfMsgForContent('fl_heading_name') . '</th>
-                          <th style="text-align: left">' . wfMsgForContent('fl_heading_datetime') . '</th>
-                          <th style="text-align: left">' . wfMsgForContent('fl_heading_size') . '</th>';
+                          <th style="text-align: left">' . wfMsgForContent('listfiles_name') . '</th>
+                          <th style="text-align: left">' . wfMsgForContent('listfiles_date') . '</th>
+                          <th style="text-align: left">' . wfMsgForContent('listfiles_size') . '</th>';
         if($descr_column)
-            $output .= '  <th style="text-align: left">' . wfMsgForContent('fl_heading_descr') . '</th>';
+            $output .= '  <th style="text-align: left">' . wfMsgForContent('listfiles_description') . '</th>';
         if(!$wgFileListConfig['upload_anonymously'])
-            $output .= '  <th style="text-align: left">' . wfMsgForContent('fl_heading_user') . '</th>';
+            $output .= '  <th style="text-align: left">' . wfMsgForContent('listfiles_user') . '</th>';
         $output .= '      <th></th>
                         </tr>
                       </thead>';
@@ -337,8 +352,8 @@ class FileList {
                               '.wfMsgForContent('fl_add').'
                             </th>
                           </tr>
-                          <tr id="fl_input" style="display:none;text-align:left">
-                            <th colspan="'.($colls-1).'">
+                          <tr id="fl_input" style="display:none;">
+                            <th colspan="'.($colls-1).'" style="text-align:left">
                               <div style="color: red;text-align:center" id="filelist_error"></div>
                               <form action="'.$form_action.'" method="post" name="filelistform" class="visualClear" enctype="multipart/form-data" id="mw-upload-form" onsubmit="return fileListSubmit()">
                                 <input name="wpUploadFile" type="file" />
@@ -353,18 +368,20 @@ class FileList {
                             </th>
                             <th>
                               <table class="noborder" cellspacing="2"><tr><td>
-                                <acronym title="'.wfMsgForContent('fl_cancel').'">
-                                  <a href="javascript:return true" class="small_remove_button" onclick="document.getElementById(\'fl_input\').style.display=\'none\';document.getElementById(\'fl_add\').style.display=\'\';document.getElementById(\'mw-upload-form\').reset()">
-                                    '.wfMsgForContent('fl_cancel').'
-                                  </a>
-                                </acronym>
+                                <a title="'.wfMsgForContent('cancel').'" href="javascript:void(0);" class="small_remove_button" onclick="document.getElementById(\'fl_input\').style.display=\'none\';document.getElementById(\'fl_add\').style.display=\'\';document.getElementById(\'mw-upload-form\').reset()">
+                                  '.wfMsgForContent('cancel').'
+                                </a>
                               </td></tr></table>
                             </th>
                           </tr>
                         </tfoot>';
         }
         
-        $output .= '  <tbody>';
+        $output .= '
+                        <tbody>';
+        if( sizeof($filelist)  == 0 )
+            $output .= '<tr><td colspan="'.$colls.'">'.wfMsgForContent('fl_empty_list').'</td></tr>';
+
         foreach ($filelist as $dataobject) {
                 $output .= '<tr>';
                 /** ICON PROCESSING **/
@@ -411,31 +428,24 @@ class FileList {
                 /** EDIT AND DELETE **/
                 $output .= '<td><table class="noborder" cellspacing="2"><tr>';
                 // edit
-                $output .= sprintf('<td><acronym title="%s"><a href="%s" class="small_edit_button">' .
-                                   '%s</a></acronym></td>',
-                                   wfMsgForContent('fl_edit'),
+                $output .= sprintf('<td><a title="%s" href="%s" class="small_edit_button">
+                                   %s</a></td>',
+                                   wfMsgForContent('edit'),
                                    htmlspecialchars(page_link_by_title('File:'.$dataobject->img_name)),
-                                   wfMsgForContent('fl_edit'));
+                                   wfMsgForContent('edit'));
                 // delete
                 if(this_user_is_allowed_to_delete($dataobject->img_name))
-                    $output .= sprintf('<td><acronym title="%s">' .
-                                       '<a href="%s?file=%s&action=deletefile" class="small_remove_button" ' .
-                                       'onclick="return confirm(\''.wfMsgForContent('fl_delete_confirm').'\')">' .
-                                       '%s</a></acronym></td>',
-                                       wfMsgForContent('fl_delete'),
+                    $output .= sprintf('<td>
+                                       <a title="%s" href="%s?file=%s&action=deletefile" class="small_remove_button" 
+                                       onclick=" return (confirm(\''.htmlspecialchars(trim(strip_tags(wfMsgWikiHtml('filedelete-intro',$img_name))) ,ENT_QUOTES). '\'));">
+                                       %s</a></td>',
+                                       wfMsgHtml('filedelete',htmlspecialchars($img_name)),
                                        htmlspecialchars($pageName->getFullURL()),
                                        htmlspecialchars(urlencode($dataobject->img_name)),
-                                       htmlspecialchars($img_name),
-                                       wfMsgForContent('fl_delete'));
-                $output .= '</tr></table></td>';
-                
-                $output .= '</tr>';
+                                       wfMsgForContent('filedelete',$img_name));
+                $output .= '</tr></table></td></tr>';
         }
         $output .= '</tbody></table>';
-        $outputLines = explode("\n", $output);
-        foreach($outputLines as &$line)
-            $line = trim($line);
-        $output = implode('', $outputLines);
         
         return $output;
     } // end of outputMedia
