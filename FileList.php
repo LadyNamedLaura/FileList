@@ -392,7 +392,7 @@ class FileList {
                                   <a title="'.wfMsgHtml('filedelete',htmlspecialchars($img_name)).'"
                                      href="'.htmlspecialchars($pageName->getFullURL()).'?file='.htmlspecialchars(urlencode($dataobject->img_name)).'&action=deletefile"
                                      class="small_remove_button"
-                                     onclick="return (confirm(\''.htmlspecialchars(trim(wfMsgHtml('fl_remove_confirm',$img_name)) ,ENT_QUOTES). '\'));">
+                                     onclick="return (confirm(\''.trim(wfMsgHtml('fl_remove_confirm',$img_name)). '\'));">
                                        '.wfMsgForContent('filedelete',$img_name).'
                                   </a>
                                 </td>';
