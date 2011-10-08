@@ -15,6 +15,7 @@ $messages['en'] = array(
   'fl_empty_list'              => 'This page doesn\'t have any files yet.',
   'fl_upload_file_anonymously' => 'Upload file anonymously',
   'fl_empty_file'              => 'Select a file please',
+  'fl_remove_confirm'          => 'You are about to delete the file "$1" along with all of its history.',
   'fl_add'                     => 'Add new file',
   // credits
   'fl_credits_desc'            => 'Generates a dynamic file-list at the insertion of <code>&lt;filelist /&gt;</code>',

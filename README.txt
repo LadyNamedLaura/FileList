@@ -1,5 +1,6 @@
 **** DISCLAIMER ****
 Copyright (C) 2010 - Jens Nyman <nymanjens.nj@gmail.com>
+Copyright (C) 2011 - Simon Peeters <peeters.simon@gmail.com>
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -14,7 +15,7 @@ details.
 **** DESCRIPTION ****
 This extension implements a new tag, <filelist>, which generates a list of
 all images or other media that were uploaded to the page. Also, the tag adds
-an input field to add a new file.
+an input field to add a new file if the user is alowed to upload.
 
 **** INSTALLATION ****
 - copy FileList/ to extensions folder
@@ -23,9 +24,15 @@ an input field to add a new file.
     $wgFileListConfig['upload_anonymously'] = false; // set this if uploads need to be anonymous
     
 - Allow file uploads
+- set allowed file types to something like
+    $wgFileExtensions = array(
+        'pdf','rar','zip','txt','7z','gz',
+        'doc','ppt','xls',
+        'docx','pptx','xlsx',
+        'odt','odp','ods',
+        'mws', 'm', 'cad', 'dwg', 'java',
+        'jpg','jpeg','gif','png',
+    );
 
 **** NOTES ****
-This extension edits some global settings:
-- allowed upload extensions
-- caching (disabled)
-
+as of this update the FileList extension no longer changes global settings.

@@ -18,14 +18,6 @@ if (!defined('MEDIAWIKI')) die("Mediawiki not set");
 /****************** CHANGING GLOBAL SETTINGS ******************/
 
 /** Set allowed extensions **/
-$wgFileExtensions = array(
-	'pdf','rar','zip','txt','7z','gz',
-	'doc','ppt','xls',
-	'docx','pptx','xlsx',
-	'odt','odp','ods',
-	'mws', 'm', 'cad', 'dwg', 'java',
-	'jpg','jpeg','gif','png',
-);
 $wgVerifyMimeType = false;
 
 /****************** EXTENSION SETTINGS ******************/
@@ -60,7 +52,7 @@ $fileListCorrespondingImages = array(
 // these will be opened in the browser when clicked on them
 // all other will be forced a download
 $fileListOpenInBrowser = array('pdf','txt','htm','html','css',
-	'jpg','jpeg','bmp','gif','png');
+                               'jpg','jpeg','bmp','gif','png');
 
 /****************** SET HOOKS ******************/
 // filelist tag
@@ -103,19 +95,13 @@ function wfFileList() {
 function FileListParserAfterTidy($parser, &$text) {
     // find markers in $text
     // replace markers with actual output
-    global $markerList;
+    global $FileListOutput;
     
     $parser->disableCache();
     
-    $keys = array();
-    $marker_count = count($markerList);
-    for ($i = 0; $i < $marker_count; $i++) {
-            $keys[] = 'xx-marker' . $i . '-xx';
-    }
-    $text = str_replace($keys, $markerList, $text);
+    $text = str_replace("xx-FileListOutput-xx", $FileListOutput, $text);
     return true;
 }
-
 
 /**
  * Redirect to originating page after upload
@@ -214,7 +200,7 @@ function fileListMovePage($form, $old_title, $new_title) {
     return true;
 }
 
-
+$FileListOutput="";
 class FileList {
     /**
      * Setup Medialist extension.
@@ -233,16 +219,18 @@ class FileList {
      * @param Parser $parser
      */
     public function hookML($headline, $argv, $parser) {
-        global $markerList;
+        global $FileListOutput;
         $parser->disableCache();
         // Get all files for this article
         $articleFiles = list_files_of_page($parser->mTitle);
         
         // Generate the media listing.
-        $markercount = count($markerList);
-        $marker = "xx-marker".$markercount."-xx";
-        $markerList[$markercount] = $this->outputMedia($parser->mTitle, $articleFiles);;
-        return $marker;
+        if ($FileListOutput != "") //second tag of the page, do not regenerate
+        {
+            return "xx-FileListOutput-xx";
+        }
+        $FileListOutput = $this->outputMedia($parser->mTitle, $articleFiles);
+        return "xx-FileListOutput-xx";
     } // end of hookML
     
     /**
@@ -261,60 +249,14 @@ class FileList {
         $icon_folder_url = $extension_folder_url . 'icons/';
         $colls = 4;
         
-        $prefix = htmlspecialchars(get_prefix_from_page_name($pageName));
-        $form_action = htmlspecialchars(page_link_by_title('Special:Upload'));
-        $upload_label = $wgFileListConfig['upload_anonymously'] ?
-            wfMsgForContent('fl_upload_file_anonymously') : wfMsgForContent('upload');
-        
         $output = '';
         // style
-        $output .= '<style>
-                        /***** table ******/
-                        table.noborder, table.noborder td, table.noborder tr {
-                            border-width: 0;
-                            padding: 0;
-                            spacing: 0;
-                        }
-                        /***** buttons *****/
-                        a.small_remove_button, a.small_edit_button {
-                        	display: block;
-                        	overflow: hidden;
-                        	text-indent: -5000px;
-                        	background-repeat: no-repeat;
-                        	height: 11px;
-                        	background-image: url('.$icon_folder_url.'/buttons_small_edit.gif);
-                        }
-                        a.small_remove_button {
-                        	width: 11px;
-                        	background-position: 0 0;
-                        }
-                        a.small_remove_button:hover {
-                        	background-position: 0 -11px;
-                        }
-                        a.small_edit_button {
-                        	width: 11px;
-                        	background-position: -21px 0;
-                        }
-                        a.small_edit_button:hover {
-                        	background-position: -21px -11px;
-                        }
-                    </style>
-            <script>
-                function fileListSubmit(){
-                    form = document.filelistform;
-                    filename = form.wpUploadFile.value;
-                    if( filename == "" ) {
-                        fileListError("'.wfMsgForContent('fl_empty_file').'");
-                        return false;
-                    }
-                    form.wpDestFile.value = "'.$prefix.'" + filename;
-                    return true;
-                }
-                function fileListError(message){
-                    document.getElementById("filelist_error").innerHTML = message;
-                }
-            </script>';
-                    
+        $output .= '<link rel="stylesheet" type="text/css" href="'. $extension_folder_url .'css/FileList.css" />
+            <style>
+            a.small_remove_button, a.small_edit_button {
+                background-image: url('.$icon_folder_url.'/buttons_small_edit.gif);
+            }
+            </style>';
         
         // check if exists
         $descr_column = false;
@@ -331,7 +273,7 @@ class FileList {
             $colls++;
         
         // table
-        $output .= '<table class="wikitable">
+        $output .= '<table class="wikitable sortable" id="fl_table">
                       <thead>
                         <tr>
                           <th style="text-align: left">' . wfMsgForContent('listfiles_name') . '</th>
@@ -341,35 +283,44 @@ class FileList {
             $output .= '  <th style="text-align: left">' . wfMsgForContent('listfiles_description') . '</th>';
         if(!$wgFileListConfig['upload_anonymously'])
             $output .= '  <th style="text-align: left">' . wfMsgForContent('listfiles_user') . '</th>';
-        $output .= '      <th></th>
+        $output .= '      <th class="nosort"></th>
                         </tr>
                       </thead>';
-        
         if(UploadBase::isAllowed( $wgUser )===true) {
+            $form_action = htmlspecialchars(page_link_by_title('Special:Upload'));
+            $upload_label = $wgFileListConfig['upload_anonymously'] ?
+                wfMsgForContent('fl_upload_file_anonymously') : wfMsgForContent('upload');
             $output .= '<tfoot>
                           <tr id="fl_add">
-                            <th colspan="'.$colls.'" style="cursor:pointer;" onClick="document.getElementById(\'fl_add\').style.display=\'none\';document.getElementById(\'fl_input\').style.display=\'\'">
-                              '.wfMsgForContent('fl_add').'
+                            <th colspan="'.$colls.'" style="cursor:pointer;"
+                                onClick="document.getElementById(\'fl_add\').style.display=\'none\';document.getElementById(\'fl_input\').style.display=\'\'">
+                              '.wfMsgHtml('fl_add').'
                             </th>
                           </tr>
                           <tr id="fl_input" style="display:none;">
                             <th colspan="'.($colls-1).'" style="text-align:left">
                               <div style="color: red;text-align:center" id="filelist_error"></div>
-                              <form action="'.$form_action.'" method="post" name="filelistform" class="visualClear" enctype="multipart/form-data" id="mw-upload-form" onsubmit="return fileListSubmit()">
+                              <form action="'.$form_action.'" method="post"
+                                    name="filelistform" class="visualClear"
+                                    enctype="multipart/form-data" id="mw-upload-form"
+                                    onsubmit="return fileListSubmit()">
                                 <input name="wpUploadFile" type="file" />
                                 <input name="wpDestFile" type="hidden" value="" />
                                 <input name="wpWatchthis" type="hidden"/>
                                 <input name="wpIgnoreWarning" type="hidden" value="1" />
                                 <input type="hidden" value="Special:Upload" name="title" />
                                 <input type="hidden" name="wpDestFileWarningAck" />
-                                <input type="submit" value="'.$upload_label.'" name="wpUpload" title="Upload [s]" accesskey="s"
-                                    class="mw-htmlform-submit" />
+                                <input type="submit" value="'.$upload_label.'"
+                                       name="wpUpload" title="Upload [s]" accesskey="s"
+                                       class="mw-htmlform-submit" />
                               </form>
                             </th>
                             <th>
                               <table class="noborder" cellspacing="2"><tr><td>
-                                <a title="'.wfMsgForContent('cancel').'" href="javascript:void(0);" class="small_remove_button" onclick="document.getElementById(\'fl_input\').style.display=\'none\';document.getElementById(\'fl_add\').style.display=\'\';document.getElementById(\'mw-upload-form\').reset()">
-                                  '.wfMsgForContent('cancel').'
+                                <a title="'.wfMsgHtml('cancel').'"
+                                   href="javascript:void(0);" class="small_remove_button"
+                                   onclick="document.getElementById(\'fl_input\').style.display=\'none\';document.getElementById(\'fl_add\').style.display=\'\';document.getElementById(\'mw-upload-form\').reset()">
+                                  '.wfMsgHtml('cancel').'
                                 </a>
                               </td></tr></table>
                             </th>
@@ -378,7 +329,7 @@ class FileList {
         }
         
         $output .= '
-                        <tbody>';
+                        <tbody id="fl_contents">';
         if( sizeof($filelist)  == 0 )
             $output .= '<tr><td colspan="'.$colls.'">'.wfMsgForContent('fl_empty_list').'</td></tr>';
 
@@ -428,24 +379,35 @@ class FileList {
                 /** EDIT AND DELETE **/
                 $output .= '<td><table class="noborder" cellspacing="2"><tr>';
                 // edit
-                $output .= sprintf('<td><a title="%s" href="%s" class="small_edit_button">
-                                   %s</a></td>',
-                                   wfMsgForContent('edit'),
-                                   htmlspecialchars(page_link_by_title('File:'.$dataobject->img_name)),
-                                   wfMsgForContent('edit'));
+                $output .= '<td>
+                              <a title="'.wfMsgForContent('edit').'"
+                                 href="'.htmlspecialchars(page_link_by_title('File:'.$dataobject->img_name)).'"
+                                 class="small_edit_button">
+                                   '.wfMsgForContent('edit').'
+                              </a>
+                            </td>';
                 // delete
                 if(this_user_is_allowed_to_delete($dataobject->img_name))
-                    $output .= sprintf('<td>
-                                       <a title="%s" href="%s?file=%s&action=deletefile" class="small_remove_button" 
-                                       onclick=" return (confirm(\''.htmlspecialchars(trim(strip_tags(wfMsgWikiHtml('filedelete-intro',$img_name))) ,ENT_QUOTES). '\'));">
-                                       %s</a></td>',
-                                       wfMsgHtml('filedelete',htmlspecialchars($img_name)),
-                                       htmlspecialchars($pageName->getFullURL()),
-                                       htmlspecialchars(urlencode($dataobject->img_name)),
-                                       wfMsgForContent('filedelete',$img_name));
+                    $output .= '<td>
+                                  <a title="'.wfMsgHtml('filedelete',htmlspecialchars($img_name)).'"
+                                     href="'.htmlspecialchars($pageName->getFullURL()).'?file='.htmlspecialchars(urlencode($dataobject->img_name)).'&action=deletefile"
+                                     class="small_remove_button"
+                                     onclick="return (confirm(\''.htmlspecialchars(trim(wfMsgHtml('fl_remove_confirm',$img_name)) ,ENT_QUOTES). '\'));">
+                                       '.wfMsgForContent('filedelete',$img_name).'
+                                  </a>
+                                </td>';
                 $output .= '</tr></table></td></tr>';
         }
-        $output .= '</tbody></table>';
+        $output .= '</tbody></table>
+          <script>
+            var i18n={"fl_empty_file":"'.htmlspecialchars(wfMsgForContent('fl_empty_file')).'",
+                      "fl_remove_confirm":"'.htmlspecialchars(wfMsgForContent('fl_remove_confirm')).'"};
+            var FileList={"prefix":"'.htmlspecialchars($prefix).'",
+                          "extension_folder_url":"'.$extension_folder_url.'"};
+          </script>
+          <script type="text/javascript" src="'.$extension_folder_url.'js/prototypes.js"></script>
+          <script type="text/javascript" src="'.$extension_folder_url.'js/sort_table.js"></script>
+          <script type="text/javascript" src="'.$extension_folder_url.'js/form.js"></script>';
         
         return $output;
     } // end of outputMedia
