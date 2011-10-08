@@ -15,11 +15,6 @@
 
 if (!defined('MEDIAWIKI')) die("Mediawiki not set");
 
-/****************** CHANGING GLOBAL SETTINGS ******************/
-
-/** Set allowed extensions **/
-$wgVerifyMimeType = false;
-
 /****************** EXTENSION SETTINGS ******************/
 // configuration array of extension
 $wgFileListConfig = array(
@@ -65,14 +60,14 @@ $wgHooks['SpecialUploadComplete'][] = 'fileListUploadComplete';
 $wgHooks['UnknownAction'][] = 'actionDeleteFile';
 // move page hook
 $wgHooks['SpecialMovepageAfterMove'][] = 'fileListMovePage';
-//
+// insert output in file
 $wgHooks['ParserAfterTidy'][] = 'FileListParserAfterTidy';
 // credits
 $wgExtensionCredits['parserhook'][] = array(
     'name'           => 'FileList',
-    'author'         => 'Jens Nyman (VTK Ghent)',
+    'author'         => 'Jens Nyman, Simon Peeters (VTK Ghent)',
 	'descriptionmsg' => 'fl_credits_desc',
-	'url'            => 'http://www.mediawiki.org/wiki/Extension:FileList',
+	'url'            => 'https://github.com/SimonPe/FileList',
 );
 
 // internationalization file
@@ -93,8 +88,6 @@ function wfFileList() {
 
 
 function FileListParserAfterTidy($parser, &$text) {
-    // find markers in $text
-    // replace markers with actual output
     global $FileListOutput;
     
     $parser->disableCache();
@@ -249,16 +242,6 @@ class FileList {
         $icon_folder_url = $extension_folder_url . 'icons/';
         $colls = 4;
         
-        $output = '';
-        // style
-        $output .= '<link rel="stylesheet" type="text/css" href="'. $extension_folder_url .'css/FileList.css" />
-            <style>
-            a.small_remove_button, a.small_edit_button {
-                background-image: url('.$icon_folder_url.'/buttons_small_edit.gif);
-            }
-            </style>';
-        
-        // check if exists
         $descr_column = false;
         foreach ($filelist as $dataobject) {
             $article = new Article ( Title::newFromText( 'File:'.$dataobject->img_name ) );
@@ -271,6 +254,22 @@ class FileList {
         }
         if(!$wgFileListConfig['upload_anonymously'])
             $colls++;
+        
+        $output = '';
+        // style
+        $output .= '<link rel="stylesheet" type="text/css" href="'. $extension_folder_url .'css/FileList.css" />
+            <style>
+            a.small_remove_button, a.small_edit_button {
+                background-image: url('.$icon_folder_url.'/buttons_small_edit.gif);
+            }
+            th.wide {
+                colspan:'.($colls-1).';
+            }
+            th.full_width{
+                colspan:'.$colls.';
+            }
+            </style>';
+        
         
         // table
         $output .= '<table class="wikitable sortable" id="fl_table">
@@ -292,14 +291,14 @@ class FileList {
                 wfMsgForContent('fl_upload_file_anonymously') : wfMsgForContent('upload');
             $output .= '<tfoot>
                           <tr id="fl_add">
-                            <th colspan="'.$colls.'" style="cursor:pointer;"
+                            <th class="full_width" style="cursor:pointer;"
                                 onClick="document.getElementById(\'fl_add\').style.display=\'none\';document.getElementById(\'fl_input\').style.display=\'\'">
                               '.wfMsgHtml('fl_add').'
                             </th>
                           </tr>
                           <tr id="fl_input" style="display:none;">
-                            <th colspan="'.($colls-1).'" style="text-align:left">
-                              <div style="color: red;text-align:center" id="filelist_error"></div>
+                            <th class="wide" style="text-align:left">
+                              <div class="error" id="filelist_error"></div>
                               <form action="'.$form_action.'" method="post"
                                     name="filelistform" class="visualClear"
                                     enctype="multipart/form-data" id="mw-upload-form"
@@ -390,7 +389,7 @@ class FileList {
                 if(this_user_is_allowed_to_delete($dataobject->img_name))
                     $output .= '<td>
                                   <a title="'.wfMsgHtml('filedelete',htmlspecialchars($img_name)).'"
-                                     href="'.htmlspecialchars($pageName->getFullURL()).'?file='.htmlspecialchars(urlencode($dataobject->img_name)).'&action=deletefile"
+                                     href="?file='.htmlspecialchars(urlencode($dataobject->img_name)).'&action=deletefile"
                                      class="small_remove_button"
                                      onclick="return (confirm(\''.htmlspecialchars(trim(wfMsgHtml('fl_remove_confirm',$img_name)) ,ENT_QUOTES). '\'));">
                                        '.wfMsgForContent('filedelete',$img_name).'

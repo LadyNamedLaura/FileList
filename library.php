@@ -88,97 +88,14 @@ function time_to_string($time){
 	if(date('Y-m-d', $time) == date('Y-m-d') )
 		return date("H:i", $time);
 	if(date('z')-1 == date('z',$time) && date('Y') == date('Y',$time) )
-		return translate_time("Yesterday").", ".date("H:i", $time);
+		return wfMsgForContent('yesterday').", ".date("H:i", $time);
 	if(date('z')-6 <= date('z',$time) && date('Y') == date('Y',$time) )
-		return translate_time(date("D", $time)) . date(", H:i", $time);
+		return wfMsgForContent(date("D", $time)) . date(", H:i", $time);
 	if(time() - $time < 60*60*24*50)
-		return translate_time(date("D", $time)) . date(", j ", $time) . strtolower(translate_time(date("M", $time)));
+		return wfMsgForContent(date("D", $time)) . date(", j ", $time) . wfMsgForContent(date("M", $time));
 	if(date('y', $time) == date('y'))
-		return date("j ", $time) . strtolower(translate_time(date("M", $time))) . date(" 'y", $time);
-	return translate_time(date("M", $time)) . date(" 'y", $time);
-}
-
-/**
- * translate to Dutch (used for time_to_string)
- *
- * @param string $word
- * @return string
- */
-function translate_time($word) {
-	global $wgLanguageCode;
-	$translate_array = array();
-    $translate_array['nl'] = array(
-        'Today' => 'Vandaag',
-        'Yesterday' => 'Gisteren',
-        'Mon' => 'Ma',
-        'Tue' => 'Di',
-        'Wed' => 'Woe',
-        'Thu' => 'Do',
-        'Fri' => 'Vrij',
-        'Sat' => 'Za',
-        'Sun' => 'Zo',
-        'Mar' => 'Mrt',
-        'May' => 'Mei',
-        'Oct' => 'Okt',
-        'January'   => 'januari',
-        'February'  => 'februari',
-        'March'     => 'maart',
-        'April'     => 'april',
-        'May'       => 'mei',
-        'June'      => 'juni',
-        'July'      => 'juli',
-        'August'    => 'augustus',
-        'September' => 'september',
-        'October'   => 'oktober',
-        'November'  => 'november',
-        'December'  => 'december',
-    );
-    $translate_array['fr'] = array(
-        'Today' => 'Aujourd\'hui',
-        'Yesterday' => 'Hier',
-        'Mon' => 'Lun',
-        'Tue' => 'Mar',
-        'Wed' => 'Mer',
-        'Thu' => 'Jeu',
-        'Fri' => 'Ven',
-        'Sat' => 'Sam',
-        'Sun' => 'Dim',
-        'Feb' => 'Fév',
-        'Apr' => 'Avr',
-        'May' => 'Mai',
-        'Jun' => 'Juin',
-        'Jul' => 'Juil',
-        'Aug' => 'Aoû',
-        'Dec' => 'Déc',
-        'January' => 'janvier',
-        'February' => 'février',
-        'March' => 'mars',
-        'April' => 'avril',
-        'May' => 'mai',
-        'June' => 'juin',
-        'July' => 'juillet',
-        'August' => 'août',
-        'September' => 'septembre',
-        'October' => 'octobre',
-        'November' => 'novembre',
-        'December' => 'décembre',
-    );
-    $translate_array['sv'] = array(
-        'Today' => 'i dag',
-        'Yesterday' => 'i går',
-        'Mon' => 'Mån',
-        'Tue' => 'Tis',
-        'Wed' => 'Ons',
-        'Thu' => 'Tor',
-        'Fri' => 'Fre',
-        'Sat' => 'Lör',
-        'Sun' => 'Sön',
-        'May' => 'Maj',
-    );
-    
-    if( isset($translate_array[$wgLanguageCode][$word]) && $translate_array[$wgLanguageCode][$word] != '')
-        return $translate_array[$wgLanguageCode][$word];
-    else return $word;
+		return date("j ", $time) . wfMsgForContent(date("M", $time)) . date(" 'y", $time);
+	return wfMsgForContent(date("M", $time)) . date(" 'y", $time);
 }
 
 /**
