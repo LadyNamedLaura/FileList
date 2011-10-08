@@ -99,27 +99,6 @@ function time_to_string($time){
 }
 
 /**
- * get file extension
- * 
- * @param string $path
- * @return string
- */
-function file_get_extension($filepath) {
-	preg_match('/[^?]*/', $filepath, $matches);
-	$string = $matches[0];
-	$pattern = preg_split('/\./', $string, -1, PREG_SPLIT_OFFSET_CAPTURE);
-	// check if there is any extension
-	if(count($pattern) == 1) {
-		return "";
-	}
-	if(count($pattern) > 1) {
-		$filenamepart = $pattern[count($pattern)-1][0];
-		preg_match('/[^?]*/', $filenamepart, $matches);
-		return $matches[0];
-	}
-}
-
-/**
  * pagename is exam page
  * 
  * @param string $pagename

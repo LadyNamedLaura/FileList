@@ -335,7 +335,7 @@ class FileList {
         foreach ($filelist as $dataobject) {
                 $output .= '<tr>';
                 /** ICON PROCESSING **/
-                $ext = file_get_extension($dataobject->img_name);
+                $ext = pathinfo($dataobject->img_name,PATHINFO_EXTENSION);
                 if(isset($fileListCorrespondingImages[$ext]))
                     $ext_img = $fileListCorrespondingImages[$ext];
                 else
