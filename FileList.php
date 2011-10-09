@@ -86,7 +86,6 @@ function wfFileList() {
     new FileList();
 }
 
-
 function FileListParserAfterTidy($parser, &$text) {
     global $FileListOutput;
     
@@ -153,13 +152,13 @@ function actionDeleteFile( $action, $article ) {
     
     // get file to delete
     $filename = $wgRequest->getVal('file');
+    $image = Image::newFromTitle($filename);
     
     // is user allowed to delete?
-    if(!this_user_is_allowed_to_delete($filename))
+    if(!this_user_is_allowed_to_delete($image))
         return false;
     
     // delete file
-    $image = Image::newFromTitle($filename);
     $image->delete('FileList deletefile action');
     
     return false;
@@ -180,14 +179,9 @@ function fileListMovePage($form, $old_title, $new_title) {
     $new_prefix = get_prefix_from_page_name($new_title);
     // foreach file that matches prefix --> rename
     foreach($files as $file) {
-        $new_fname = $new_prefix . substr($file->img_name, strlen($old_prefix));
-        $old_file = Title::newFromText('File:' . $file->img_name);
+        $new_fname = $new_prefix . substr($file->getName(), strlen($old_prefix));
         $new_file = Title::newFromText('File:' . $new_fname);
-        
-        // move file
-		$movePageForm = new MovePageForm($old_file, $new_file);
-    	$movePageForm->reason = "";
-		$movePageForm->doSubmit();
+        $file->move($new_file);
     }
     
     return true;
@@ -244,8 +238,7 @@ class FileList {
         
         $descr_column = false;
         foreach ($filelist as $dataobject) {
-            $article = new Article ( Title::newFromText( 'File:'.$dataobject->img_name ) );
-            $descr = $article->getContent();
+            $descr = Revision::newFromTitle($dataobject->title)->getText();
             if(trim($descr) != "") {
                 $descr_column = true;
                 $colls++;
@@ -335,7 +328,7 @@ class FileList {
         foreach ($filelist as $dataobject) {
                 $output .= '<tr>';
                 /** ICON PROCESSING **/
-                $ext = pathinfo($dataobject->img_name,PATHINFO_EXTENSION);
+                $ext = $dataobject->getExtension();
                 if(isset($fileListCorrespondingImages[$ext]))
                     $ext_img = $fileListCorrespondingImages[$ext];
                 else
@@ -343,36 +336,30 @@ class FileList {
                 $output .= '<td><img src="'.$icon_folder_url . $ext_img.'.gif" alt="" /> ';
                 
                 /** FILENAME PROCESSING**/
-                $img_name = str_replace('_', ' ', $dataobject->img_name);
-                $img_name = substr($img_name, strlen($prefix));
-                $img_name_w_underscores = substr($dataobject->img_name, strlen($prefix));
-                $link = $extension_folder_url . 'file.php?name='.urlencode($img_name_w_underscores) . "&file=" . urlencode($dataobject->img_name);
+                $img_name_w_underscores = substr($dataobject->getName(), strlen($prefix));
+                $img_name = str_replace('_', ' ', $img_name_w_underscores);
                 // if description exists, use this as filename
-                $descr = $dataobject->img_description;
-                if($descr)
-                    $img_name = $descr;
-                $output .= '<a href="'.htmlspecialchars($link).'">'.htmlspecialchars($img_name).'</a></td>';
+                if($dataobject->getDescription())
+                    $img_name = $dataobject->getDescription();
+                $output .= '<a href="'.htmlspecialchars($dataobject->getURL()).'">'.htmlspecialchars($img_name).'</a></td>';
                 
                 /** TIME PROCESSING**/
                 // converts (database-dependent) timestamp to unix format, which can be used in date()
-                $timestamp = wfTimestamp(TS_UNIX, $dataobject->img_timestamp);
+                $timestamp = wfTimestamp(TS_UNIX, $dataobject->getTimestamp());
                 $output .= '<td>' . time_to_string($timestamp) . '</td>';
                 
                 /** SIZE PROCESSING **/
-                $size = human_readable_filesize($dataobject->img_size);
+                $size = human_readable_filesize($dataobject->getSize());
                 $output .= '<td>'.$size.'</td>';
                 
                 /** DESCRIPTION **/
                 if($descr_column) {
-                    $article = new Article ( Title::newFromText( 'File:'.$dataobject->img_name ) );
-                    $descr = $article->getContent();
-                    $descr = str_replace("\n", " ", $descr);
-                    $output .= '<td>'.htmlspecialchars($descr).'</td>';
+                    $output .= '<td>'.Revision::newFromTitle($dataobject->title)->getText().'</td>';
                 }
                 
                 /** USERNAME **/
                 if(!$wgFileListConfig['upload_anonymously']) {
-                    $output .= '<td>'.htmlspecialchars($dataobject->img_user_text).'</td>';
+                    $output .= '<td>'.htmlspecialchars($dataobject->getUser()).'</td>';
                 }
                 
                 /** EDIT AND DELETE **/
@@ -380,16 +367,16 @@ class FileList {
                 // edit
                 $output .= '<td>
                               <a title="'.wfMsgForContent('edit').'"
-                                 href="'.htmlspecialchars(page_link_by_title('File:'.$dataobject->img_name)).'"
+                                 href="'.htmlspecialchars($dataobject->getDescriptionUrl()).'"
                                  class="small_edit_button">
                                    '.wfMsgForContent('edit').'
                               </a>
                             </td>';
                 // delete
-                if(this_user_is_allowed_to_delete($dataobject->img_name))
+                if(this_user_is_allowed_to_delete($dataobject))
                     $output .= '<td>
                                   <a title="'.wfMsgHtml('filedelete',htmlspecialchars($img_name)).'"
-                                     href="?file='.htmlspecialchars(urlencode($dataobject->img_name)).'&action=deletefile"
+                                     href="?file='.htmlspecialchars(urlencode($dataobject->getName())).'&action=deletefile"
                                      class="small_remove_button"
                                      onclick="return (confirm(\''.htmlspecialchars(trim(wfMsgHtml('fl_remove_confirm',$img_name)) ,ENT_QUOTES). '\'));">
                                        '.wfMsgForContent('filedelete',$img_name).'
@@ -411,6 +398,4 @@ class FileList {
         return $output;
     } // end of outputMedia
 } // end of class FileList
-
-
 

@@ -17,14 +17,13 @@ define('EXAM_STR', 'Examen_....-...._-_');
  * @param string $filename
  * @return bool
  */
-function this_user_is_allowed_to_delete($filename){
+function this_user_is_allowed_to_delete($file){
     global $wgUser;
     $groups = $wgUser->getGroups();
     $username = $wgUser->getName();
     
     // get file user
-    $image = wfFindFile($filename);
-    $file_user = $image->getUser();
+    $file_user = $file->getUser();
     
     // allowed to delete own files
     if($file_user == $username)
@@ -139,7 +138,7 @@ function list_files_of_page($pagename) {
     while ($x = $dbr->fetchObject($res)) {
         if( strtolower(substr($x->img_name, 0, strlen($prefix))) == strtolower($prefix))
             if( $exam_page || !pagename_is_exam_page($x->img_name) ) // remove exam-files from non-exam pages
-                $list[] = $x;
+                $list[] = RepoGroup::singleton()->getLocalRepo()->newFileFromRow($x);
     }
 
     // Free the results.
@@ -155,9 +154,5 @@ function list_files_of_page($pagename) {
  * @return string
  */
 function get_prefix_from_page_name($pageName) {
-    $pageName = str_replace(' ', '_', $pageName);
-    return $pageName . '_-_';
+    return str_replace(' ', '_', $pageName) . '_-_';
 }
-
-
-
