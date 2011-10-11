@@ -5,19 +5,19 @@ table.noborder, table.noborder td, table.noborder tr {
     spacing: 0;
 }
 /***** buttons *****/
-a.small_remove_button, a.small_edit_button {
-    display: block;
-    overflow: hidden;
-    text-indent: -5000px;
-    background-repeat: no-repeat;
-    height: 11px;
+a.small_remove_button, a.small_edit_button, a.small_cancel_button {
+	display: block;
+	overflow: hidden;
+	text-indent: -5000px;
+	background-repeat: no-repeat;
+	height: 11px;
 }
-a.small_remove_button {
-    width: 11px;
-    background-position: 0 0;
+a.small_remove_button, a.small_cancel_button {
+	width: 11px;
+	background-position: 0 0;
 }
-a.small_remove_button:hover {
-    background-position: 0 -11px;
+a.small_remove_button:hover, a.small_cancel_button:hover {
+	background-position: 0 -11px;
 }
 a.small_edit_button {
     width: 11px;
@@ -29,4 +29,7 @@ a.small_edit_button:hover {
 div.error {
     color: red;
     text-align:center;
+}
+#fl_add {
+    cursor:pointer;
 }
