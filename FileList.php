@@ -74,6 +74,24 @@ $wgExtensionCredits['parserhook'][] = array(
 	'descriptionmsg' => 'fl_credits_desc',
 	'url'            => 'http://www.mediawiki.org/wiki/Extension:FileList',
 );
+$wgResourceModules['ext.FileList'] = array(
+    // JavaScript and CSS styles. To combine multiple file, just list them as an array.
+    'scripts' => array( 'js/form.js', 'js/list.js'),
+    'styles' => 'css/FileList.css',
+
+    // When your module is loaded, these messages will be available through mw.msg()
+    'messages' => array( 'fl_empty_file', 'fl_remove_confirm' ),
+
+    // If your scripts need code from other modules, list their identifiers as dependencies
+    // and ResourceLoader will make sure they're loaded before you.
+    // You don't need to manually list 'mediawiki' or 'jquery', which are always loaded.
+    
+    // ResourceLoader needs to know where your files are; specify your
+    // subdir relative to "/extensions" (or $wgExtensionAssetsPath)
+    'localBasePath' => dirname( __FILE__ ),
+    'remoteExtPath' => 'FileList'
+);
+
 
 // internationalization file
 $wgExtensionMessagesFiles['myextension'] = dirname( __FILE__ ) . '/FileList.i18n.php';
@@ -87,7 +105,6 @@ require_once( dirname(__FILE__) . '/library.php' );
  * Sets a parser hook for <filelist/>.
  */
 function wfFileList() {
-    
     new FileList();
 }
 
@@ -219,8 +236,10 @@ class FileList {
      * @param Parser $parser
      */
     public function hookML($headline, $argv, $parser) {
-        global $FileListOutput;
+        global $FileListOutput, $wgOut;
         $parser->disableCache();
+        $wgOut->addModules( 'ext.FileList' );
+        
         // Get all files for this article
         $articleFiles = list_files_of_page($parser->mTitle);
         
@@ -251,9 +270,8 @@ class FileList {
         
         $output = '';
         // style
-        $output .= '<link rel="stylesheet" type="text/css" href="'. $extension_folder_url .'css/FileList.css" />
-            <style>
-            a.small_remove_button, a.small_edit_button {
+        $output .= '<style>
+            a.small_remove_button, a.small_edit_button, a.small_cancel_button {
                 background-image: url('.$icon_folder_url.'/buttons_small_edit.gif);
             }
             </style>';
@@ -283,7 +301,7 @@ class FileList {
             $output .= '  <th style="text-align: left">' . wfMsgForContent('listfiles_description') . '</th>';
         if(!$wgFileListConfig['upload_anonymously'])
             $output .= '  <th style="text-align: left">' . wfMsgForContent('listfiles_user') . '</th>';
-        $output .= '      <th class="nosort"></th>
+        $output .= '      <th class="unsortable"></th>
                         </tr>
                       </thead>';
         if(UploadBase::isAllowed( $wgUser )===true) {
@@ -291,19 +309,17 @@ class FileList {
             $upload_label = $wgFileListConfig['upload_anonymously'] ?
                 wfMsgForContent('fl_upload_file_anonymously') : wfMsgForContent('upload');
             $output .= '<tfoot>
-                          <tr id="fl_add">
-                            <th colspan="'.$colls.'" style="cursor:pointer;"
-                                onClick="document.getElementById(\'fl_add\').style.display=\'none\';document.getElementById(\'fl_input\').style.display=\'\'">
+                          <tr id="fl_add" style="display:none;" class=" unsortable">
+                            <th colspan="'.$colls.'">
                               '.wfMsgHtml('fl_add').'
                             </th>
                           </tr>
-                          <tr id="fl_input" style="display:none;">
+                          <tr id="fl_input" class=" unsortable">
                             <th colspan="'.($colls-1).'" style="text-align:left">
                               <div style="color: red;text-align:center" id="filelist_error"></div>
                               <form action="'.$form_action.'" method="post"
                                     name="filelistform" class="visualClear"
-                                    enctype="multipart/form-data" id="mw-upload-form"
-                                    onsubmit="return fileListSubmit()">
+                                    enctype="multipart/form-data" id="mw-upload-form">
                                 <input name="wpUploadFile" type="file" />
                                 <input name="wpDestFile" type="hidden" value="" />
                                 <input name="wpWatchthis" type="hidden"/>
@@ -317,9 +333,8 @@ class FileList {
                             </th>
                             <th>
                               <table class="noborder" cellspacing="2"><tr><td>
-                                <a title="'.wfMsgHtml('cancel').'"
-                                   href="javascript:void(0);" class="small_remove_button"
-                                   onclick="document.getElementById(\'fl_input\').style.display=\'none\';document.getElementById(\'fl_add\').style.display=\'\';document.getElementById(\'mw-upload-form\').reset()">
+                                <a title="'.wfMsgHtml('cancel').'" href="#"
+                                   id="fl_form_cancel" class="small_cancel_button">
                                   '.wfMsgHtml('cancel').'
                                 </a>
                               </td></tr></table>
@@ -390,9 +405,10 @@ class FileList {
                 if(this_user_is_allowed_to_delete($dataobject->img_name))
                     $output .= '<td>
                                   <a title="'.wfMsgHtml('filedelete',htmlspecialchars($img_name)).'"
-                                     href="'.htmlspecialchars($pageName->getFullURL()).'?file='.htmlspecialchars(urlencode($dataobject->img_name)).'&action=deletefile"
+                                     href="?file='.htmlspecialchars(urlencode($dataobject->img_name)).'&action=deletefile"
                                      class="small_remove_button"
-                                     onclick="return (confirm(\''.htmlspecialchars(trim(wfMsgHtml('fl_remove_confirm',$img_name)) ,ENT_QUOTES). '\'));">
+                                     fname="'.$img_name.'"
+                                     id="delete_'.$dataobject->img_name.'">
                                        '.wfMsgForContent('filedelete',$img_name).'
                                   </a>
                                 </td>';
@@ -400,18 +416,11 @@ class FileList {
         }
         $output .= '</tbody></table>
           <script>
-            var i18n={"fl_empty_file":"'.htmlspecialchars(wfMsgForContent('fl_empty_file')).'",
-                      "fl_remove_confirm":"'.htmlspecialchars(wfMsgForContent('fl_remove_confirm')).'"};
             var FileList={"prefix":"'.htmlspecialchars($prefix).'",
                           "extension_folder_url":"'.$extension_folder_url.'"};
-          </script>
-          <script type="text/javascript" src="'.$extension_folder_url.'js/prototypes.js"></script>
-          <script type="text/javascript" src="'.$extension_folder_url.'js/sort_table.js"></script>
-          <script type="text/javascript" src="'.$extension_folder_url.'js/form.js"></script>';
+          </script>';
         
         return $output;
     } // end of outputMedia
 } // end of class FileList
-
-
 

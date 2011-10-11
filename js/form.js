@@ -1,20 +1,24 @@
-function getMsg(msg){
-    if (arguments.length == 1)
-        return i18n[msg];
-    arguments.shift();
-    return i18n[msg].format(arguments);
-}
-function fileListSubmit(){
-    form = document.filelistform;
-    filename = form.wpUploadFile.value;
-    if( filename == "" ) {
-        fileListError(getMsg('fl_empty_file'));
-        return false;
-    }
-    form.wpDestFile.value = FileList.prefix + filename;
-    return true;
-}
 function fileListError(message){
     document.getElementById("filelist_error").innerHTML = message;
 }
+
+$('#fl_input').css('display','none');
+$('#fl_add').css('display','');
+$('#fl_add').click(function (event){
+    $('#fl_input').css('display','');
+    $('#fl_add').css('display','none');})
+$('#fl_form_cancel').click(function (event){
+    $('#fl_input').css('display','none');
+    $('#fl_add').css('display','');
+    $('#mw-upload-form')[0].reset();
+    return false;})
+$('#mw-upload-form').submit(function (event){
+    var filename = $('#mw-upload-form > input[name="wpUploadFile"]').val();
+    if( filename == "" ) {
+        fileListError(mw.msg('fl_empty_file'));
+        return false;
+    }
+    $('#mw-upload-form > input[name="wpDestFile"]').val(FileList.prefix + filename);
+    return true;
+});
 
