@@ -253,31 +253,21 @@ class FileList {
         $prefix = htmlspecialchars(get_prefix_from_page_name($pageName));
         $extension_folder_url = htmlspecialchars(get_index_url()) . 'extensions/' . basename(dirname(__FILE__)) . '/';
         $icon_folder_url = $extension_folder_url . 'icons/';
-        $colls = 4;
         
         $descr_column = false;
         foreach ($filelist as $dataobject) {
             $descr = Revision::newFromTitle($dataobject->title)->getText();
             if(trim($descr) != "") {
                 $descr_column = true;
-                $colls++;
                 break;
             }
         }
-        if(!$wgFileListConfig['upload_anonymously'])
-            $colls++;
         
         $output = '';
         // style
         $output .= '<style>
-            a.small_remove_button, a.small_edit_button {
+            a.small_remove_button, a.small_edit_button,  a.small_cancel_button {
                 background-image: url('.$icon_folder_url.'/buttons_small_edit.gif);
-            }
-            th.wide {
-                colspan:'.($colls-1).';
-            }
-            th.full_width{
-                colspan:'.$colls.';
             }
             </style>';
         
@@ -288,12 +278,10 @@ class FileList {
                         <tr>
                           <th style="text-align: left">' . wfMsgForContent('listfiles_name') . '</th>
                           <th style="text-align: left">' . wfMsgForContent('listfiles_date') . '</th>
-                          <th style="text-align: left">' . wfMsgForContent('listfiles_size') . '</th>';
-        if($descr_column)
-            $output .= '  <th style="text-align: left">' . wfMsgForContent('listfiles_description') . '</th>';
-        if(!$wgFileListConfig['upload_anonymously'])
-            $output .= '  <th style="text-align: left">' . wfMsgForContent('listfiles_user') . '</th>';
-        $output .= '      <th class="unsortable"></th>
+                          <th style="text-align: left">' . wfMsgForContent('listfiles_size') . '</th>
+                          <th style="text-align: left" class="fl_descr">' . wfMsgForContent('listfiles_description') . '</th>
+                          <th style="text-align: left" class="fl_user">' . wfMsgForContent('listfiles_user') . '</th>
+                          <th class="unsortable"></th>
                         </tr>
                       </thead>';
         if(UploadBase::isAllowed( $wgUser )===true) {
@@ -302,12 +290,12 @@ class FileList {
                 wfMsgForContent('fl_upload_file_anonymously') : wfMsgForContent('upload');
             $output .= '<tfoot>
                           <tr id="fl_add" style="display:none;" class=" unsortable">
-                            <th class="full_width">
+                            <th colspan="6" class="fl_full_width">
                               '.wfMsgHtml('fl_add').'
                             </th>
                           </tr>
                           <tr id="fl_input" class=" unsortable">
-                            <th class="wide" style="text-align:left">
+                            <th colspan="5" class="fl_wide" style="text-align:left">
                               <div class="error" id="filelist_error"></div>
                               <form action="'.$form_action.'" method="post"
                                     name="filelistform" class="visualClear"
@@ -338,55 +326,41 @@ class FileList {
         $output .= '
                         <tbody id="fl_contents">';
         if( sizeof($filelist)  == 0 )
-            $output .= '<tr><td colspan="'.$colls.'">'.wfMsgForContent('fl_empty_list').'</td></tr>';
+            $output .= '<tr><td colspan="6" class="fl_full_width">'.wfMsgForContent('fl_empty_list').'</td></tr>';
 
         foreach ($filelist as $dataobject) {
-                $output .= '<tr>';
-                /** ICON PROCESSING **/
-                $ext = $dataobject->getExtension();
-                if(isset($fileListCorrespondingImages[$ext]))
-                    $ext_img = $fileListCorrespondingImages[$ext];
-                else
-                    $ext_img = 'default';
-                $output .= '<td><img src="'.$icon_folder_url . $ext_img.'.gif" alt="" /> ';
-                
-                /** FILENAME PROCESSING**/
                 $img_name_w_underscores = substr($dataobject->getName(), strlen($prefix));
-                $img_name = str_replace('_', ' ', $img_name_w_underscores);
-                // if description exists, use this as filename
                 if($dataobject->getDescription())
                     $img_name = $dataobject->getDescription();
-                $output .= '<a href="'.htmlspecialchars($dataobject->getURL()).'">'.htmlspecialchars($img_name).'</a></td>';
+                else
+                    $img_name = str_replace('_', ' ', $img_name_w_underscores);
                 
-                /** TIME PROCESSING**/
-                // converts (database-dependent) timestamp to unix format, which can be used in date()
+                $ext = $dataobject->getExtension();
+                if(isset($fileListCorrespondingImages[$ext]))
+                    $ext_img = $icon_folder_url . $fileListCorrespondingImages[$ext];
+                else
+                    $ext_img = $icon_folder_url .'default';
+                
+                $username = $wgFileListConfig['upload_anonymously']?"":$dataobject->getUser();
                 $timestamp = wfTimestamp(TS_UNIX, $dataobject->getTimestamp());
-                $output .= '<td>' . time_to_string($timestamp) . '</td>';
+                $size = $dataobject->getSize();
                 
-                /** SIZE PROCESSING **/
-                $size = human_readable_filesize($dataobject->getSize());
-                $output .= '<td>'.$size.'</td>';
-                
-                /** DESCRIPTION **/
-                if($descr_column) {
-                    $output .= '<td>'.Revision::newFromTitle($dataobject->title)->getText().'</td>';
-                }
-                
-                /** USERNAME **/
-                if(!$wgFileListConfig['upload_anonymously']) {
-                    $output .= '<td>'.htmlspecialchars($dataobject->getUser()).'</td>';
-                }
-                
-                /** EDIT AND DELETE **/
-                $output .= '<td><table class="noborder" cellspacing="2"><tr>';
-                // edit
-                $output .= '<td>
-                              <a title="'.wfMsgForContent('edit').'"
-                                 href="'.htmlspecialchars($dataobject->getDescriptionUrl()).'"
-                                 class="small_edit_button">
-                                   '.wfMsgForContent('edit').'
-                              </a>
-                            </td>';
+                $output .= '<tr>
+                              <td>
+                                <img src="'. $ext_img.'.gif" alt="" />
+                                <a href="'.htmlspecialchars($dataobject->getURL()).'">'.htmlspecialchars($img_name).'</a></td>
+                              <td sortval="'.$timestamp.'">' . time_to_string($timestamp) . '</td>
+                              <td sortval="'.$size.'">'.human_readable_filesize($size).'</td>
+                              <td class="fl_descr">'.Revision::newFromTitle($dataobject->title)->getText().'</td>
+                              <td class="fl_user">'.htmlspecialchars($username).'</td>
+                              <td><table class="noborder" cellspacing="2"><tr>
+                                <td>
+                                  <a title="'.wfMsgForContent('edit').'"
+                                     href="'.htmlspecialchars($dataobject->getDescriptionUrl()).'"
+                                     class="small_edit_button">
+                                       '.wfMsgForContent('edit').'
+                                  </a>
+                                </td>';
                 // delete
                 if(this_user_is_allowed_to_delete($dataobject))
                     $output .= '<td>
@@ -403,7 +377,8 @@ class FileList {
         $output .= '</tbody></table>
           <script>
             var FileList={"prefix":"'.htmlspecialchars($prefix).'",
-                          "extension_folder_url":"'.$extension_folder_url.'"};
+                          "extension_folder_url":"'.$extension_folder_url.'",
+                          "anonymous":'.($wgFileListConfig['upload_anonymously']?'true':'false').'};
           </script>';
         
         return $output;
