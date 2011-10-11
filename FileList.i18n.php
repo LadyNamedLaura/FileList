@@ -17,6 +17,7 @@ $messages['en'] = array(
   'fl_empty_file'              => 'Select a file please',
   'fl_remove_confirm'          => 'You are about to delete the file "$1" along with all of its history.', //like 'filedelete-intro' but plaintext
   'fl_add'                     => 'Add new file',
+  'yesterday'                  => 'Yesterday',
   // credits
   'fl_credits_desc'            => 'Generates a dynamic file-list at the insertion of <code>&lt;filelist /&gt;</code>',
 );
