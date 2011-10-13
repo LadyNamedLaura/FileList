@@ -44,11 +44,6 @@ $fileListCorrespondingImages = array(
     'png' =>  'gif',
 );
 
-// these will be opened in the browser when clicked on them
-// all other will be forced a download
-$fileListOpenInBrowser = array('pdf','txt','htm','html','css',
-                               'jpg','jpeg','bmp','gif','png');
-
 /****************** SET HOOKS ******************/
 // filelist tag
 $wgExtensionFunctions[] = 'wfFileList';
@@ -71,8 +66,7 @@ $wgExtensionCredits['parserhook'][] = array(
 );
 $wgResourceModules['ext.FileList'] = array(
     // JavaScript and CSS styles. To combine multiple file, just list them as an array.
-    'scripts' => array( 'js/form.js', 'js/list.js'),
-    'styles' => 'css/FileList.css',
+    'scripts' => array( 'js/form.js', 'js/tableSort.js', 'js/list.js'),
 
     // When your module is loaded, these messages will be available through mw.msg()
     'messages' => array( 'fl_empty_file', 'fl_remove_confirm' ),
@@ -265,7 +259,8 @@ class FileList {
         
         $output = '';
         // style
-        $output .= '<style>
+        $output .= '<link rel="stylesheet" type="text/css" href="'. $extension_folder_url .'css/FileList.css" />
+            <style>
             a.small_remove_button, a.small_edit_button,  a.small_cancel_button {
                 background-image: url('.$icon_folder_url.'/buttons_small_edit.gif);
             }
@@ -273,7 +268,7 @@ class FileList {
         
         
         // table
-        $output .= '<table class="wikitable sortable" id="fl_table">
+        $output .= '<table class="wikitable" id="fl_table">
                       <thead>
                         <tr>
                           <th style="text-align: left">' . wfMsgForContent('listfiles_name') . '</th>
@@ -281,7 +276,7 @@ class FileList {
                           <th style="text-align: left">' . wfMsgForContent('listfiles_size') . '</th>
                           <th style="text-align: left" class="fl_descr">' . wfMsgForContent('listfiles_description') . '</th>
                           <th style="text-align: left" class="fl_user">' . wfMsgForContent('listfiles_user') . '</th>
-                          <th class="unsortable"></th>
+                          <th class="nosort"></th>
                         </tr>
                       </thead>';
         if(UploadBase::isAllowed( $wgUser )===true) {
@@ -349,8 +344,8 @@ class FileList {
                               <td>
                                 <img src="'. $ext_img.'.gif" alt="" />
                                 <a href="'.htmlspecialchars($dataobject->getURL()).'">'.htmlspecialchars($img_name).'</a></td>
-                              <td sortval="'.$timestamp.'">' . time_to_string($timestamp) . '</td>
-                              <td sortval="'.$size.'">'.human_readable_filesize($size).'</td>
+                              <td class="fl_time" sortval="'.$timestamp.'">' . time_to_string($timestamp) . '</td>
+                              <td class="fl_size" sortval="'.$size.'">'.human_readable_filesize($size).'</td>
                               <td class="fl_descr">'.Revision::newFromTitle($dataobject->title)->getText().'</td>
                               <td class="fl_user">'.htmlspecialchars($username).'</td>
                               <td><table class="noborder" cellspacing="2"><tr>

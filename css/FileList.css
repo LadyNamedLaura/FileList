@@ -33,3 +33,6 @@ div.error {
 #fl_add {
     cursor:pointer;
 }
+td.fl_size {
+    text-align:right;
+}

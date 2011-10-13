@@ -1,4 +1,10 @@
-function update_table(){
+function update_table(table) {
+    if(!table.sTable){
+        new SortableTable(table);
+    } else {
+        table.sTable.resort();
+    }
+    
     $('.small_remove_button').click(function (event) {
         if (!confirm(mw.msg('fl_remove_confirm',$(this).attr('fname'))))
             event.preventDefault();});
@@ -18,10 +24,12 @@ function update_table(){
             descr=true;
     if (!descr){
         $(".fl_descr").hide();
-        rows--;}
+        rows--;
+    } else {
+        $(".fl_descr").show();
+    }
     $(".fl_full_width").attr("colspan",rows);
     $(".fl_wide").attr("colspan",rows-1);
-    
 }
 var origrows=6;
-update_table();
+update_table($('#fl_table')[0]);
