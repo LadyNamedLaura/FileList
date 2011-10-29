@@ -362,8 +362,7 @@ class FileList {
                                   <a title="'.wfMsgHtml('filedelete',htmlspecialchars($img_name)).'"
                                      href="?file='.htmlspecialchars(urlencode($dataobject->getName())).'&action=deletefile"
                                      class="small_remove_button"
-                                     fname="'.$img_name.'"
-                                     id="delete_'.$dataobject->img_name.'">
+                                     fname="'.$img_name.'">
                                        '.wfMsgForContent('filedelete',$img_name).'
                                   </a>
                                 </td>';

@@ -7,11 +7,14 @@ function update_table(table) {
     
     $('.small_remove_button').click(function (event) {
         if (!confirm(mw.msg('fl_remove_confirm',$(this).attr('fname'))))
-            event.preventDefault();});
-    
+        {
+            event.preventDefault();
+        }
+    });
     if (window.uprows)
+    {
         window.uprows.add();
-    
+    }
     rows=origrows;
     if(window.FileList.anonymous){
         $(".fl_user").hide();
@@ -20,8 +23,12 @@ function update_table(table) {
     var descr_row=$('.fl_descr');
     var descr=false;
     for (i=1;i<descr_row.length;i++)
+    {
         if (descr_row[i].innerHTML.length>1)
+        {
             descr=true;
+        }
+    }
     if (!descr){
         $(".fl_descr").hide();
         rows--;

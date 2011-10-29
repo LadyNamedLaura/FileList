@@ -12,42 +12,60 @@ window.SortableTable=function (tableEl) {
 
     this.getParent = function (el, pTagName) {
         if (el == null)
+        {
             return null;
+        }
         else if (el.nodeType == 1 && el.tagName.toLowerCase() == pTagName.toLowerCase())
+        {
             return el;
+        }
         else
+        {
             return this.getParent(el.parentNode, pTagName);
+        }
     }
     this.sort = function (cell) {
         var column = cell.cellIndex;
         var itm = this.getInnerText(this.tbodies[0].rows[1].cells[column]);
         var sortfn = this.sortCaseInsensitive;
         if ($(this.tbodies[0].rows[1].cells[column]).attr('sortval'))
+        {
             itm = $(this.tbodies[0].rows[1].cells[column]).attr('sortval');
+        }
         if (itm.match(/\d\d[-]+\d\d[-]+\d\d\d\d/))
+        {
             sortfn = this.sortDate; // date format mm-dd-yyyy
+        }
         if (itm.replace(/^\s+|\s+$/g,"").match(/^[\d\.]+$/))
+        {
             sortfn = this.sortNumeric;
+        }
         
         this.sortColumnIndex = column;
         
         var newRows = new Array();
         for (j = 0; j < this.tbodies[0].rows.length; j++)
+        {
             newRows[j] = this.tbodies[0].rows[j];
-        
+        }
         newRows.sort(sortfn);
         if (cell.getAttribute("sortdir") == 'down') {
             newRows.reverse();
             cell.setAttribute('sortdir','up');
-        } else
+        } else {
             cell.setAttribute('sortdir','down');
+        }
         
         for (i=0;i<newRows.length;i++)
+        {
             this.tbodies[0].appendChild(newRows[i]);
+        }
     }
     this.resort = function () {
         if(this.sortColumnIndex == -1)
+        {
             return;
+        }
         var column=this.sortColumnIndex;
         var itm = this.getInnerText(this.tbodies[0].rows[1].cells[column]);
         var sortfn = this.sortCaseInsensitive;
