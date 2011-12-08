@@ -1,24 +1,30 @@
 function fileListError(message){
-    document.getElementById("filelist_error").innerHTML = message;
+    $("#filelist_error").show().html(message);
 }
-
-$('#fl_input').css('display','none');
-$('#fl_add').css('display','');
-$('#fl_add').click(function (event){
-    $('#fl_input').css('display','');
-    $('#fl_add').css('display','none');})
-$('#fl_form_cancel').click(function (event){
-    $('#fl_input').css('display','none');
-    $('#fl_add').css('display','');
-    $('#mw-upload-form')[0].reset();
-    return false;})
-$('#mw-upload-form').submit(function (event){
-    var filename = $('#mw-upload-form > input[name="wpUploadFile"]').val();
-    if( filename == "" ) {
+if(FileList.hideForm){
+    $('.fl_input').css('display','none');
+    $('.fl_add').show().click(function (event){
+        var table=$(this).closest('.fl_table');
+        table.find('.fl_input').show();
+        table.find('.fl_add').hide();
+        event.preventDefault()})
+    $('.small_cancel_button').click(function (event){
+        var table=$(this).closest('.fl_table');
+        table.find('.fl_input').hide();
+        table.find('.fl_add').show();
+        table.find('.fl-upload-form')[0].reset();
+        event.preventDefault()})
+} else {
+    $('.small_cancel_button').click(function (event){
+        var table=$(this).closest('.fl_table');
+        table.find('.fl-upload-form')[0].reset();
+        event.preventDefault()})
+}
+$('.fl-upload-form').submit(function (event){
+    if( $(this).find('input[name="wpUploadFile"]').val() == "" ) {
         fileListError(mw.msg('fl_empty_file'));
         return false;
     }
-    $('#mw-upload-form > input[name="wpDestFile"]').val(FileList.prefix + filename);
     return true;
 });
 

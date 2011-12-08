@@ -29,6 +29,7 @@ $messages['nl'] = array(
   'fl_empty_file'              => 'U hebt nog geen bestand ingevoegd',
   'fl_remove_confirm'          => 'U staat op het punt om het bestand "$1" te verwijderen, inclusief alle eerdere versies.',
   'fl_add'                     => 'Nieuw bestand toevoegen',
+  'yesterday'                  => 'Gisteren',
   // credits
   'fl_credits_desc'            => 'Genereert dynamische file-lijst met uploadformulier bij het invoeren van <code>&lt;filelist /&gt;</code>',
 );
